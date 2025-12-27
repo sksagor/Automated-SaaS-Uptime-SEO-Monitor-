@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - SaaS Monitor{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>Dashboard</h1>
+        <p class="lead">Monitor your SaaS applications' uptime and SEO performance</p>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Recent Checks</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_logs %}
+                    <div class="list-group">
+                        {% for log in recent_logs %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between">
+                                    <strong>{{ log.website.name }}</strong>
+                                    <span class="badge bg-{% if log.is_up %}success{% else %}danger{% endif %}">
+                                        {% if log.is_up %}UP{% else %}DOWN{% endif %}
+                                    </span>
+                                </div>
+                                <small class="text-muted">
+                                    Status: {{ log.status_code }} | 
+                                    Response: {{ log.response_time }}s | 
+                                    {{ log.checked_at|timesince }} ago
+                                </small>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">No checks yet. Add your first website to monitor!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Your Websites</h5>
+            </div>
+            <div class="card-body">
+                {% if websites %}
+                    <div class="list-group">
+                        {% for website in websites %}
+                            <a href="#" class="list-group-item list-group-item-action">
+                                <div class="d-flex justify-content-between">
+                                    <strong>{{ website.name }}</strong>
+                                    <span class="badge bg-{% if website.is_active %}info{% else %}warning{% endif %}">
+                                        {% if website.is_active %}Active{% else %}Inactive{% endif %}
+                                    </span>
+                                </div>
+                                <small class="text-muted">{{ website.url }}</small>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">No websites yet.</p>
+                    <a href="{% url 'add_website' %}" class="btn btn-primary">Add Your First Website</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <a href="{% url 'add_website' %}" class="btn btn-success">Add New Website</a>
+                <a href="{% url 'website_list' %}" class="btn btn-info">View All Websites</a>
+                <a href="#" class="btn btn-warning">Run Manual Check</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
