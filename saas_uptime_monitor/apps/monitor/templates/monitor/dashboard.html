@@ -51,15 +51,27 @@
                 {% if websites %}
                     <div class="list-group">
                         {% for website in websites %}
-                            <a href="#" class="list-group-item list-group-item-action">
-                                <div class="d-flex justify-content-between">
-                                    <strong>{{ website.name }}</strong>
-                                    <span class="badge bg-{% if website.is_active %}info{% else %}warning{% endif %}">
-                                        {% if website.is_active %}Active{% else %}Inactive{% endif %}
-                                    </span>
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ website.name }}</strong><br>
+                                        <small class="text-muted">{{ website.url }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-{% if website.is_active %}info{% else %}warning{% endif %} mb-2 d-block">
+                                            {% if website.is_active %}Active{% else %}Inactive{% endif %}
+                                        </span>
+                                        <form method="post" action="{% url 'toggle_website' website.id %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            {% if website.is_active %}
+                                                <button type="submit" class="btn btn-sm btn-warning">Deactivate</button>
+                                            {% else %}
+                                                <button type="submit" class="btn btn-sm btn-success">Activate</button>
+                                            {% endif %}
+                                        </form>
+                                    </div>
                                 </div>
-                                <small class="text-muted">{{ website.url }}</small>
-                            </a>
+                            </div>
                         {% endfor %}
                     </div>
                 {% else %}

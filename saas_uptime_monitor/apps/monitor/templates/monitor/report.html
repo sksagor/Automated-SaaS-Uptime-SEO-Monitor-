@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+
+{% block title %}SEO Report - {{ website.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>SEO Report</h1>
+            <p class="lead mb-0">{{ website.name }} - {{ website.url }}</p>
+        </div>
+        <div>
+            <a href="{% url 'website_list' %}" class="btn btn-secondary">Back to Websites</a>
+            <a href="{% url 'generate_report' website.id %}" class="btn btn-primary">
+                <i class="fas fa-sync-alt"></i> Refresh Report
+            </a>
+        </div>
+    </div>
+
+    {% if report %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Report Generated: {{ report.checked_at|date:"F j, Y, g:i a" }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Basic SEO Metrics</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td><strong>Title:</strong></td>
+                                        <td>{{ report.title|default:"No title found" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Meta Description:</strong></td>
+                                        <td>{{ report.meta_description|default:"No meta description found"|truncatechars:100 }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Title Length:</strong></td>
+                                        <td>
+                                            <span class="badge bg-{% if report.title and report.title|length >= 50 and report.title|length <= 60 %}success{% else %}warning{% endif %}">
+                                                {{ report.title|length|default:0 }} characters
+                                            </span>
+                                            {% if report.title %}
+                                                {% if report.title|length < 50 %}
+                                                    <small class="text-danger">(Too short)</small>
+                                                {% elif report.title|length > 60 %}
+                                                    <small class="text-warning">(Too long)</small>
+                                                {% else %}
+                                                    <small class="text-success">(Optimal)</small>
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6>Content Analysis</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td><strong>H1 Tags:</strong></td>
+                                        <td>
+                                            <span class="badge bg-{% if report.h1_count == 1 %}success{% elif report.h1_count == 0 %}danger{% else %}warning{% endif %}">
+                                                {{ report.h1_count }}
+                                            </span>
+                                            {% if report.h1_count == 1 %}
+                                                <small class="text-success">(Perfect)</small>
+                                            {% elif report.h1_count == 0 %}
+                                                <small class="text-danger">(No H1 found)</small>
+                                            {% else %}
+                                                <small class="text-warning">(Multiple H1s)</small>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Word Count:</strong></td>
+                                        <td>
+                                            <span class="badge bg-{% if report.word_count > 300 %}success{% elif report.word_count > 100 %}warning{% else %}danger{% endif %}">
+                                                {{ report.word_count }} words
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Internal Links:</strong></td>
+                                        <td>{{ report.internal_links }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>External Links:</strong></td>
+                                        <td>{{ report.external_links }}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Uptime Status -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Recent Uptime Checks</h5>
+                </div>
+                <div class="card-body">
+                    {% if uptime_logs %}
+                    <div class="list-group list-group-flush">
+                        {% for log in uptime_logs|slice:":5" %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <span>{{ log.checked_at|date:"M d, H:i" }}</span>
+                                <span class="badge bg-{% if log.is_up %}success{% else %}danger{% endif %}">
+                                    {% if log.is_up %}UP ({{ log.status_code }}){% else %}DOWN{% endif %}
+                                </span>
+                            </div>
+                            <small class="text-muted">Response: {{ log.response_time|floatformat:2 }}s</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No uptime data available.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Report History -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Report History</h5>
+                </div>
+                <div class="card-body">
+                    {% if seo_reports %}
+                    <div class="list-group list-group-flush">
+                        {% for seo_report in seo_reports|slice:":5" %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <span>{{ seo_report.checked_at|date:"M d, Y" }}</span>
+                                <span class="badge bg-info">SEO Score</span>
+                            </div>
+                            <small class="text-muted">
+                                H1: {{ seo_report.h1_count }} | 
+                                Words: {{ seo_report.word_count }} | 
+                                Links: {{ seo_report.internal_links }}/{{ seo_report.external_links }}
+                            </small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No previous reports.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <div class="alert alert-warning">
+        <h4>No SEO Report Available</h4>
+        <p>Generate your first SEO report for this website.</p>
+        <a href="{% url 'generate_report' website.id %}" class="btn btn-primary">Generate First Report</a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .badge {
+        font-size: 0.85em;
+    }
+    .table td {
+        border-top: none;
+        padding: 0.5rem;
+    }
+    .table tr:not(:last-child) td {
+        border-bottom: 1px solid #dee2e6;
+    }
+</style>
+{% endblock %}

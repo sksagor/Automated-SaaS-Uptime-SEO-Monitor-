@@ -3,29 +3,157 @@
 {% block title %}Websites - SaaS Monitor{% endblock %}
 
 {% block content %}
-<h1>Your Websites</h1>
-<a href="{% url 'add_website' %}" class="btn btn-success mb-3">Add New Website</a>
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-end mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Websites</h2>
+            <p class="text-muted">Monitor status and SEO health in real-time.</p>
+        </div>
+        <a href="{% url 'add_website' %}" class="btn btn-primary px-4 shadow-sm">
+            <i class="fas fa-plus me-2"></i>Add Website
+        </a>
+    </div>
 
-<div class="list-group">
+    {% if websites %}
+    <div class="card border-0 shadow-sm rounded-3">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4 border-0 text-muted small">WEBSITE DETAILS</th>
+                        <th class="border-0 text-muted small">STATUS</th>
+                        <th class="pe-4 border-0 text-muted small text-end">AVAILABLE ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for website in websites %}
+                    <tr class="website-row">
+                        <td class="ps-4 py-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-primary bg-opacity-10 text-primary rounded p-2 me-3">
+                                    <i class="fas fa-globe fa-lg"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-dark">{{ website.name }}</div>
+                                    <div class="small text-muted text-truncate" style="max-width: 250px;">{{ website.url }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if website.is_active %}
+                                <span class="badge rounded-pill bg-success-subtle text-success border border-success px-3">
+                                    <i class="fas fa-circle fa-xs me-1"></i> Active
+                                </span>
+                            {% else %}
+                                <span class="badge rounded-pill bg-light text-secondary border px-3">
+                                    <i class="fas fa-circle fa-xs me-1"></i> Inactive
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="pe-4 text-end">
+                            <div class="d-inline-flex gap-2 align-items-center justify-content-end">
+                                
+                                <form method="post" action="{% url 'toggle_website' website.id %}" class="m-0">
+                                    {% csrf_token %}
+                                    {% if website.is_active %}
+                                        <button type="submit" class="btn btn-sm btn-outline-warning d-inline-flex align-items-center">
+                                            <i class="fas fa-pause me-1"></i> Pause
+                                        </button>
+                                    {% else %}
+                                        <button type="submit" class="btn btn-sm btn-outline-success d-inline-flex align-items-center">
+                                            <i class="fas fa-play me-1"></i> Activate
+                                        </button>
+                                    {% endif %}
+                                </form>
+
+                                <button type="button" class="btn btn-sm btn-outline-info d-inline-flex align-items-center" 
+                                        data-bs-toggle="modal" data-bs-target="#reportDetails{{ website.id }}">
+                                    <i class="fas fa-info-circle me-1"></i> Details
+                                </button>
+
+                                <a href="{% url 'generate_report' website.id %}" class="btn btn-sm btn-primary d-inline-flex align-items-center shadow-sm">
+                                    <i class="fas fa-chart-bar me-1"></i> Generate Report
+                                </a>
+
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     {% for website in websites %}
-    <div class="list-group-item">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h5>{{ website.name }}</h5>
-                <small class="text-muted">{{ website.url }}</small>
-            </div>
-            <div>
-                <span class="badge bg-{% if website.is_active %}success{% else %}secondary{% endif %}">
-                    {% if website.is_active %}Active{% else %}Inactive{% endif %}
-                </span>
-                <a href="#" class="btn btn-sm btn-info">Generate Report</a>
+    <div class="modal fade" id="reportDetails{{ website.id }}" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-bottom-0">
+                    <h5 class="fw-bold mb-0">Analysis Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-0">
+                    <p class="text-muted">What we will analyze for <strong>{{ website.name }}</strong>:</p>
+                    <ul class="list-group list-group-flush small">
+                        <li class="list-group-item px-0 d-flex justify-content-between">
+                            <span><i class="fas fa-check text-success me-2"></i>Meta Tag Health</span>
+                            <span class="text-muted">SEO</span>
+                        </li>
+                        <li class="list-group-item px-0 d-flex justify-content-between">
+                            <span><i class="fas fa-check text-success me-2"></i>Performance & Speed</span>
+                            <span class="text-muted">Lighthouse</span>
+                        </li>
+                        <li class="list-group-item px-0 d-flex justify-content-between">
+                            <span><i class="fas fa-check text-success me-2"></i>Internal Link Audit</span>
+                            <span class="text-muted">Links</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="modal-footer border-top-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                    <a href="{% url 'generate_report' website.id %}" class="btn btn-primary">Start Generation</a>
+                </div>
             </div>
         </div>
     </div>
-    {% empty %}
-    <div class="alert alert-info">
-        No websites yet. <a href="{% url 'add_website' %}">Add your first website</a>.
-    </div>
     {% endfor %}
+
+    {% else %}
+    <div class="card border-dashed p-5 text-center">
+        <div class="mb-3"><i class="fas fa-globe-americas fa-3x text-light"></i></div>
+        <h5>No Websites Added</h5>
+        <p class="text-muted mb-4">You haven't added any websites to monitor yet.</p>
+        <a href="{% url 'add_website' %}" class="btn btn-primary px-4">Add Your First Website</a>
+    </div>
+    {% endif %}
 </div>
+
+<style>
+    /* Table Improvements */
+    .website-row {
+        transition: all 0.2s;
+    }
+    .website-row:hover {
+        background-color: #fbfcfe;
+    }
+
+    /* Badge Overrides for Modern Look */
+    .bg-success-subtle { background-color: #e6fcf5 !important; }
+    
+    /* Ensure action buttons don't wrap and are visible */
+    .gap-2 { gap: 0.5rem !important; }
+    
+    /* Small adjustments to button text for readability */
+    .btn-sm {
+        font-weight: 500;
+        font-size: 0.8rem;
+        padding: 0.4rem 0.75rem;
+        white-space: nowrap;
+    }
+
+    .border-dashed {
+        border: 2px dashed #dee2e6;
+        background: transparent;
+    }
+</style>
 {% endblock %}
