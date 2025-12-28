@@ -6,6 +6,8 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 import re
+import json
+from collections import Counter
 
 @login_required
 def dashboard(request):
@@ -58,9 +60,17 @@ def generate_report(request, website_id):
             h1_tags = soup.find_all('h1')
             h1_count = len(h1_tags)
             
-            # Count words in body
+            # Count other header tags
+            h2_count = len(soup.find_all('h2'))
+            h3_count = len(soup.find_all('h3'))
+            h4_count = len(soup.find_all('h4'))
+            h5_count = len(soup.find_all('h5'))
+            h6_count = len(soup.find_all('h6'))
+            
+            # Count words in body and analyze content
             body_text = soup.get_text()
-            word_count = len(re.findall(r'\w+', body_text))
+            words = re.findall(r'\w+', body_text.lower())
+            word_count = len(words)
             
             # Count links
             all_links = soup.find_all('a', href=True)
@@ -77,7 +87,183 @@ def generate_report(request, website_id):
                 else:
                     external_links += 1
             
-            # Create SEO log entry
+            # Image analysis
+            all_images = soup.find_all('img')
+            total_images = len(all_images)
+            images_without_alt = sum(1 for img in all_images if not img.get('alt'))
+            
+            # Content issues detection
+            has_missing_meta_description = meta_description is None or len(meta_description.strip()) == 0
+            has_missing_title = title is None or len(title.strip()) == 0
+            has_missing_h1 = h1_count == 0
+            has_multiple_h1 = h1_count > 1
+            has_short_content = word_count < 300
+            
+            # Keyword analysis (basic)
+            top_keywords = {}
+            keyword_density = {}
+            if words:
+                # Remove common stop words
+                stop_words = {'the', 'and', 'a', 'an', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'but', 'or', 'as', 'if', 'then', 'else', 'when', 'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 's', 't', 'can', 'will', 'just', 'don', 'should', 'now'}
+                
+                # Count word frequencies
+                word_freq = Counter(words)
+                
+                # Filter out stop words and short words
+                filtered_words = {k: v for k, v in word_freq.items() 
+                                 if k not in stop_words and len(k) > 3}
+                
+                # Get top 10 keywords
+                if filtered_words:
+                    top_keywords = dict(sorted(filtered_words.items(), 
+                                               key=lambda x: x[1], 
+                                               reverse=True)[:10])
+                    
+                    # Calculate keyword density (percentage)
+                    keyword_density = {k: round((v / word_count) * 100, 2) 
+                                      for k, v in top_keywords.items()}
+            
+            # Duplicate content estimation (simplified)
+            duplicate_percentage = 0.0
+            if word_count > 0:
+                # Simple check for repeated sentences
+                sentences = re.split(r'[.!?]+', body_text)
+                unique_sentences = set()
+                for sentence in sentences:
+                    clean_sentence = sentence.strip().lower()
+                    if len(clean_sentence) > 20:  # Only consider meaningful sentences
+                        unique_sentences.add(clean_sentence)
+                
+                if sentences and len(unique_sentences) > 0:
+                    duplicate_percentage = round(
+                        (1 - len(unique_sentences) / len(sentences)) * 100, 
+                        1
+                    )
+            
+            # Mobile/responsive check
+            has_viewport_meta = soup.find('meta', attrs={'name': 'viewport'}) is not None
+            has_favicon = (soup.find('link', rel='icon') is not None or 
+                          soup.find('link', rel='shortcut icon') is not None)
+            
+            # Calculate SEO scores
+            # SEO Friendliness Score (0-100)
+            seo_friendliness = 0
+            if title and 50 <= len(title) <= 60:
+                seo_friendliness += 15
+            elif title:
+                seo_friendliness += 5
+                
+            if meta_description and 120 <= len(meta_description) <= 160:
+                seo_friendliness += 15
+            elif meta_description:
+                seo_friendliness += 5
+                
+            if h1_count == 1:
+                seo_friendliness += 20
+            elif h1_count > 1:
+                seo_friendliness += 5
+                
+            if h2_count >= 2:
+                seo_friendliness += 10
+            elif h2_count == 1:
+                seo_friendliness += 5
+                
+            if has_viewport_meta:
+                seo_friendliness += 10
+                
+            if word_count >= 500:
+                seo_friendliness += 15
+            elif word_count >= 300:
+                seo_friendliness += 10
+            else:
+                seo_friendliness += 5
+                
+            if images_without_alt == 0:
+                seo_friendliness += 10
+            elif images_without_alt < 3:
+                seo_friendliness += 5
+                
+            if duplicate_percentage < 10:
+                seo_friendliness += 10
+            elif duplicate_percentage < 20:
+                seo_friendliness += 5
+            
+            # Content Quality Score (0-100)
+            content_quality = 0
+            if word_count >= 800:
+                content_quality += 25
+            elif word_count >= 500:
+                content_quality += 20
+            elif word_count >= 300:
+                content_quality += 15
+            else:
+                content_quality += 5
+                
+            if h1_count == 1:
+                content_quality += 15
+                
+            if h2_count >= 2:
+                content_quality += 15
+            elif h2_count == 1:
+                content_quality += 10
+                
+            if duplicate_percentage < 5:
+                content_quality += 20
+            elif duplicate_percentage < 15:
+                content_quality += 10
+            elif duplicate_percentage < 25:
+                content_quality += 5
+                
+            if images_without_alt == 0:
+                content_quality += 15
+            elif images_without_alt < 3:
+                content_quality += 10
+            elif images_without_alt < 6:
+                content_quality += 5
+                
+            if top_keywords:
+                content_quality += 10
+            
+            # Google Terms Score (0-100)
+            google_terms_score = 100
+            google_terms_issues = []
+            
+            if has_missing_title:
+                google_terms_score -= 20
+                google_terms_issues.append("Missing page title")
+                
+            if has_missing_meta_description:
+                google_terms_score -= 15
+                google_terms_issues.append("Missing meta description")
+                
+            if has_missing_h1:
+                google_terms_score -= 20
+                google_terms_issues.append("Missing H1 tag")
+                
+            if images_without_alt > 0:
+                deduction = min(images_without_alt * 3, 25)
+                google_terms_score -= deduction
+                google_terms_issues.append(f"{images_without_alt} images without alt text")
+                
+            if word_count < 300:
+                google_terms_score -= 20
+                google_terms_issues.append("Content too short (less than 300 words)")
+                
+            if duplicate_percentage > 30:
+                google_terms_score -= 15
+                google_terms_issues.append(f"High duplicate content ({duplicate_percentage}%)")
+                
+            if not has_viewport_meta:
+                google_terms_score -= 10
+                google_terms_issues.append("Missing viewport meta tag (not mobile-friendly)")
+            
+            # Ensure score is between 0-100
+            google_terms_score = max(0, min(100, google_terms_score))
+            
+            # Overall SEO Score (average of three scores)
+            seo_score = round((seo_friendliness + content_quality + google_terms_score) / 3)
+            
+            # Create SEO log entry with all fields
             seo_log = SEOLog.objects.create(
                 website=website,
                 title=title,
@@ -85,10 +271,33 @@ def generate_report(request, website_id):
                 h1_count=h1_count,
                 word_count=word_count,
                 internal_links=internal_links,
-                external_links=external_links
+                external_links=external_links,
+                # New fields
+                seo_score=seo_score,
+                seo_friendliness=seo_friendliness,
+                content_quality=content_quality,
+                duplicate_percentage=duplicate_percentage,
+                h2_count=h2_count,
+                h3_count=h3_count,
+                h4_count=h4_count,
+                h5_count=h5_count,
+                h6_count=h6_count,
+                images_without_alt=images_without_alt,
+                total_images=total_images,
+                has_missing_meta_description=has_missing_meta_description,
+                has_missing_title=has_missing_title,
+                has_missing_h1=has_missing_h1,
+                has_multiple_h1=has_multiple_h1,
+                has_short_content=has_short_content,
+                top_keywords=json.dumps(top_keywords),
+                keyword_density=json.dumps(keyword_density),
+                has_viewport_meta=has_viewport_meta,
+                has_favicon=has_favicon,
+                google_terms_score=google_terms_score,
+                google_terms_issues=json.dumps(google_terms_issues)
             )
             
-            messages.success(request, f"SEO report generated for {website.name}")
+            messages.success(request, f"Comprehensive SEO report generated for {website.name}")
             
             # Redirect to the report display page
             return redirect('view_report', website_id=website.id)
@@ -139,7 +348,6 @@ def view_report(request, website_id):
     
     return render(request, 'monitor/report.html', context)
 
-# Optional: If you want a delete website function
 @login_required
 def delete_website(request, website_id):
     website = get_object_or_404(Website, id=website_id, owner=request.user)

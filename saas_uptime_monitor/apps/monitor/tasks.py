@@ -4,7 +4,7 @@ from .models import Website, UptimeLog, SEOLog
 import requests
 import time
 from bs4 import BeautifulSoup
-import logging
+import logging        
 
 logger = logging.getLogger(__name__)
 

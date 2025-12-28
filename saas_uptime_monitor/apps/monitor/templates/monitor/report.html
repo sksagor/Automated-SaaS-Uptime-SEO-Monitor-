@@ -18,16 +18,67 @@
     </div>
 
     {% if report %}
+    <!-- Overall SEO Score Card -->
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">Report Generated: {{ report.checked_at|date:"F j, Y, g:i a" }}</h5>
+                    <h5 class="mb-0">
+                        Overall SEO Score: 
+                        <span class="badge bg-{% if report.seo_score >= 80 %}success{% elif report.seo_score >= 60 %}warning{% else %}danger{% endif %}">
+                            {{ report.seo_score }}/100
+                        </span>
+                    </h5>
+                    <p class="mb-0 text-muted">Report Generated: {{ report.checked_at|date:"F j, Y, g:i a" }}</p>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            <div class="mb-3">
+                                <h6>SEO Friendliness</h6>
+                                <div class="seo-metric-circle mx-auto">
+                                    <div class="metric-value {% if report.seo_friendliness >= 80 %}text-success{% elif report.seo_friendliness >= 60 %}text-warning{% else %}text-danger{% endif %}">
+                                        {{ report.seo_friendliness }}%
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="mb-3">
+                                <h6>Content Quality</h6>
+                                <div class="seo-metric-circle mx-auto">
+                                    <div class="metric-value {% if report.content_quality >= 80 %}text-success{% elif report.content_quality >= 60 %}text-warning{% else %}text-danger{% endif %}">
+                                        {{ report.content_quality }}%
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="mb-3">
+                                <h6>Google Terms</h6>
+                                <div class="seo-metric-circle mx-auto">
+                                    <div class="metric-value {% if report.google_terms_score >= 80 %}text-success{% elif report.google_terms_score >= 60 %}text-warning{% else %}text-danger{% endif %}">
+                                        {{ report.google_terms_score }}%
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Existing Basic SEO Metrics Card -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Basic SEO Metrics</h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <h6>Basic SEO Metrics</h6>
                             <div class="table-responsive">
                                 <table class="table table-sm">
                                     <tr>
@@ -48,6 +99,24 @@
                                                 {% if report.title|length < 50 %}
                                                     <small class="text-danger">(Too short)</small>
                                                 {% elif report.title|length > 60 %}
+                                                    <small class="text-warning">(Too long)</small>
+                                                {% else %}
+                                                    <small class="text-success">(Optimal)</small>
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <!-- NEW: Meta Description Length -->
+                                    <tr>
+                                        <td><strong>Meta Description Length:</strong></td>
+                                        <td>
+                                            <span class="badge bg-{% if report.meta_description and report.meta_description|length >= 120 and report.meta_description|length <= 160 %}success{% else %}warning{% endif %}">
+                                                {{ report.meta_description|length|default:0 }} characters
+                                            </span>
+                                            {% if report.meta_description %}
+                                                {% if report.meta_description|length < 120 %}
+                                                    <small class="text-danger">(Too short)</small>
+                                                {% elif report.meta_description|length > 160 %}
                                                     <small class="text-warning">(Too long)</small>
                                                 {% else %}
                                                     <small class="text-success">(Optimal)</small>
@@ -78,10 +147,27 @@
                                             {% endif %}
                                         </td>
                                     </tr>
+                                    <!-- NEW: Other Header Tags -->
+                                    <tr>
+                                        <td><strong>H2 Tags:</strong></td>
+                                        <td>
+                                            <span class="badge bg-{% if report.h2_count >= 2 %}success{% elif report.h2_count >= 1 %}warning{% else %}danger{% endif %}">
+                                                {{ report.h2_count }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>H3 Tags:</strong></td>
+                                        <td>
+                                            <span class="badge bg-{% if report.h3_count >= 1 %}info{% else %}secondary{% endif %}">
+                                                {{ report.h3_count }}
+                                            </span>
+                                        </td>
+                                    </tr>
                                     <tr>
                                         <td><strong>Word Count:</strong></td>
                                         <td>
-                                            <span class="badge bg-{% if report.word_count > 300 %}success{% elif report.word_count > 100 %}warning{% else %}danger{% endif %}">
+                                            <span class="badge bg-{% if report.word_count > 500 %}success{% elif report.word_count > 300 %}warning{% else %}danger{% endif %}">
                                                 {{ report.word_count }} words
                                             </span>
                                         </td>
@@ -103,6 +189,157 @@
         </div>
     </div>
 
+    <!-- NEW: Content Quality & Image Analysis Section -->
+    <div class="row mb-4">
+        <!-- Content Quality Card -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Content Quality Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Duplicate Content:</strong></td>
+                                <td>
+                                    <span class="badge bg-{% if report.duplicate_percentage < 10 %}success{% elif report.duplicate_percentage < 20 %}warning{% else %}danger{% endif %}">
+                                        {{ report.duplicate_percentage|floatformat:1 }}%
+                                    </span>
+                                    {% if report.duplicate_percentage < 10 %}
+                                        <small class="text-success">(Good)</small>
+                                    {% elif report.duplicate_percentage < 20 %}
+                                        <small class="text-warning">(Moderate)</small>
+                                    {% else %}
+                                        <small class="text-danger">(High)</small>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Content Issues:</strong></td>
+                                <td>
+                                    {% if report.has_short_content %}
+                                        <span class="badge bg-danger">Short Content</span>
+                                    {% endif %}
+                                    {% if report.has_missing_h1 %}
+                                        <span class="badge bg-danger">No H1 Tag</span>
+                                    {% endif %}
+                                    {% if report.has_multiple_h1 %}
+                                        <span class="badge bg-warning">Multiple H1s</span>
+                                    {% endif %}
+                                    {% if report.has_missing_title %}
+                                        <span class="badge bg-danger">No Title</span>
+                                    {% endif %}
+                                    {% if report.has_missing_meta_description %}
+                                        <span class="badge bg-warning">No Meta Description</span>
+                                    {% endif %}
+                                    {% if not report.has_short_content and not report.has_missing_h1 and not report.has_multiple_h1 and not report.has_missing_title and not report.has_missing_meta_description %}
+                                        <span class="badge bg-success">No Issues Found</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <!-- Keyword Analysis -->
+                            <tr>
+                                <td colspan="2">
+                                    <strong>Top Keywords:</strong><br>
+                                    {% if report.top_keywords %}
+                                        {% with keywords=report.top_keywords|default:"{}" %}
+                                            {% if keywords %}
+                                                {% for keyword, count in keywords.items %}
+                                                    <span class="badge bg-info me-1 mb-1">{{ keyword }}: {{ count }}</span>
+                                                {% endfor %}
+                                            {% else %}
+                                                <small class="text-muted">No keywords detected</small>
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% else %}
+                                        <small class="text-muted">No keywords detected</small>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Image & Technical Analysis Card -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Image & Technical Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Total Images:</strong></td>
+                                <td>{{ report.total_images }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Images without Alt Text:</strong></td>
+                                <td>
+                                    <span class="badge bg-{% if report.images_without_alt == 0 %}success{% elif report.images_without_alt < 3 %}warning{% else %}danger{% endif %}">
+                                        {{ report.images_without_alt }}
+                                    </span>
+                                    {% if report.images_without_alt > 0 %}
+                                        <small class="text-danger">(SEO Issue)</small>
+                                    {% else %}
+                                        <small class="text-success">(Good)</small>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Mobile Responsive:</strong></td>
+                                <td>
+                                    {% if report.has_viewport_meta %}
+                                        <span class="badge bg-success">Yes</span>
+                                        <small class="text-success">(Good)</small>
+                                    {% else %}
+                                        <span class="badge bg-danger">No</span>
+                                        <small class="text-danger">(Missing viewport meta)</small>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Favicon:</strong></td>
+                                <td>
+                                    {% if report.has_favicon %}
+                                        <span class="badge bg-success">Present</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Missing</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <!-- NEW: Google Terms Issues -->
+                            <tr>
+                                <td colspan="2">
+                                    <strong>Google Terms Issues:</strong><br>
+                                    {% if report.google_terms_issues %}
+                                        {% with issues=report.google_terms_issues|default:"[]" %}
+                                            {% if issues %}
+                                                <ul class="mb-0 ps-3">
+                                                    {% for issue in issues %}
+                                                        <li><small>{{ issue }}</small></li>
+                                                    {% endfor %}
+                                                </ul>
+                                            {% else %}
+                                                <small class="text-success">No issues detected</small>
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% else %}
+                                        <small class="text-success">No issues detected</small>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Existing Uptime and Report History Section -->
     <div class="row">
         <!-- Uptime Status -->
         <div class="col-md-6">
@@ -145,12 +382,14 @@
                         <div class="list-group-item">
                             <div class="d-flex justify-content-between">
                                 <span>{{ seo_report.checked_at|date:"M d, Y" }}</span>
-                                <span class="badge bg-info">SEO Score</span>
+                                <span class="badge bg-{% if seo_report.seo_score >= 80 %}success{% elif seo_report.seo_score >= 60 %}warning{% else %}danger{% endif %}">
+                                    Score: {{ seo_report.seo_score }}
+                                </span>
                             </div>
                             <small class="text-muted">
-                                H1: {{ seo_report.h1_count }} | 
-                                Words: {{ seo_report.word_count }} | 
-                                Links: {{ seo_report.internal_links }}/{{ seo_report.external_links }}
+                                Quality: {{ seo_report.content_quality }}% | 
+                                Duplicate: {{ seo_report.duplicate_percentage|floatformat:1 }}% |
+                                Images: {{ seo_report.images_without_alt }}/{{ seo_report.total_images }}
                             </small>
                         </div>
                         {% endfor %}
@@ -183,5 +422,64 @@
     .table tr:not(:last-child) td {
         border-bottom: 1px solid #dee2e6;
     }
+    .seo-metric-circle {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        border: 5px solid #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+    }
+    .metric-value {
+        font-size: 1.8rem;
+        font-weight: bold;
+    }
 </style>
+
+<script>
+    // Parse JSON data for template display
+    document.addEventListener('DOMContentLoaded', function() {
+        // Parse top_keywords if it's a string
+        const keywordElements = document.querySelectorAll('[data-keywords]');
+        keywordElements.forEach(element => {
+            try {
+                const keywords = JSON.parse(element.dataset.keywords);
+                if (keywords && typeof keywords === 'object') {
+                    element.innerHTML = '';
+                    Object.entries(keywords).forEach(([keyword, count]) => {
+                        const badge = document.createElement('span');
+                        badge.className = 'badge bg-info me-1 mb-1';
+                        badge.textContent = `${keyword}: ${count}`;
+                        element.appendChild(badge);
+                    });
+                }
+            } catch (e) {
+                console.log('Could not parse keywords');
+            }
+        });
+        
+        // Parse google_terms_issues if it's a string
+        const issueElements = document.querySelectorAll('[data-issues]');
+        issueElements.forEach(element => {
+            try {
+                const issues = JSON.parse(element.dataset.issues);
+                if (issues && Array.isArray(issues) && issues.length > 0) {
+                    element.innerHTML = '';
+                    const ul = document.createElement('ul');
+                    ul.className = 'mb-0 ps-3';
+                    issues.forEach(issue => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `<small>${issue}</small>`;
+                        ul.appendChild(li);
+                    });
+                    element.appendChild(ul);
+                }
+            } catch (e) {
+                console.log('Could not parse issues');
+            }
+        });
+    });
+</script>
 {% endblock %}
